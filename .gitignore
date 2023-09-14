@@ -2,7 +2,9 @@
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-*.jar
+./*.jar
+json-20230618.jar
+mysql-connector-j-8.1.0.jar
 
 ### Eclipse ###
 .apt_generated
