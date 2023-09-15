@@ -1,15 +1,15 @@
 package com.main;
 
+import com.mysql.cj.protocol.Resultset;
 import com.sun.net.httpserver.HttpServer;
 import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
@@ -19,21 +19,13 @@ public class Main {
     static String databaseName = "spectrumdb";
     static String url = "jdbc:mysql://localhost:3306/" + databaseName;
 
-    static JSONObject bodyParams;
-
-    public static void executeQuery(String query, Connection conn) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement(query);
-        int status = ps.executeUpdate();
-        System.out.println(status != 0 ? "Query run successful" : "BRRR");
-    }
-
     public static void main(String[] args) throws
             ClassNotFoundException,
             NoSuchMethodException,
             InvocationTargetException,
             InstantiationException,
             IllegalAccessException,
-            SQLException, IOException {
+            IOException, SQLException {
 
 //        DATABASE CONNECTION
         Class.forName("com.mysql.cj.jdbc.Driver").getDeclaredConstructor().newInstance();
@@ -42,21 +34,36 @@ public class Main {
 //        SERVER CONTEXT CREATION
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/api/teachers", (exchange) -> {
-            if("POST".equals(exchange.getRequestMethod())) {
+            if("GET".equals(exchange.getRequestMethod())) {
+                String query = "SELECT * from " + databaseName + ".teachers;";
+                ResultSet rs;
+                ArrayList<String> list = new ArrayList<>();
+                try {
+                    PreparedStatement ps = connection.prepareStatement(query);
+                    rs = ps.executeQuery();
+                    while(rs.next()) {
+                        list.add(rs.getString("teacher_name"));
+                    }
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+                String response = list.toString();
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream stream = exchange.getResponseBody();
+                stream.write(response.getBytes());
+                stream.flush();
+            } else if("POST".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(200, 0);
                 InputStream stream = exchange.getRequestBody();
                 Scanner s = new Scanner(stream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
                 System.out.println(result);
                 JSONObject obj = new JSONObject(result);
                 stream.close();
+                String query = "INSERT INTO teachers VALUES(7, \"" + obj.getString("name") + "\")";
                 try {
-                    System.out.println(obj.getString("name"));
-                    String query = "INSERT INTO teachers VALUES(3, \"" + obj.getString("name") + "\")";
                     PreparedStatement ps = connection.prepareStatement(query);
-                    System.out.println(query);
-                    int status = ps.executeUpdate();
-                    if(status != 0)
-                        System.out.println("Query run successful");
+                    ps.executeUpdate();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
