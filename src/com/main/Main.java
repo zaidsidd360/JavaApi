@@ -1,6 +1,5 @@
 package com.main;
 
-import com.mysql.cj.protocol.Resultset;
 import com.sun.net.httpserver.HttpServer;
 import org.json.JSONObject;
 import java.io.IOException;
@@ -35,11 +34,11 @@ public class Main {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/api/teachers", (exchange) -> {
             if("GET".equals(exchange.getRequestMethod())) {
-                String query = "SELECT * from " + databaseName + ".teachers;";
+                String getTeachersQuery = "SELECT * from " + databaseName + ".teachers;";
                 ResultSet rs;
                 ArrayList<String> list = new ArrayList<>();
                 try {
-                    PreparedStatement ps = connection.prepareStatement(query);
+                    PreparedStatement ps = connection.prepareStatement(getTeachersQuery);
                     rs = ps.executeQuery();
                     while(rs.next()) {
                         list.add(rs.getString("teacher_name"));
@@ -53,17 +52,21 @@ public class Main {
                 stream.write(response.getBytes());
                 stream.flush();
             } else if("POST".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(200, 0);
-                InputStream stream = exchange.getRequestBody();
-                Scanner s = new Scanner(stream).useDelimiter("\\A");
+                InputStream istream = exchange.getRequestBody();
+                Scanner s = new Scanner(istream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
                 System.out.println(result);
                 JSONObject obj = new JSONObject(result);
-                stream.close();
-                String query = "INSERT INTO teachers VALUES(7, \"" + obj.getString("name") + "\")";
+                istream.close();
+                String message = obj.getString("name") + " added to teachers successfully.";
+                exchange.sendResponseHeaders(200, message.length());
+                OutputStream ostream = exchange.getResponseBody();
+                String insertTeacherQuery = "INSERT INTO teachers (teacher_name) VALUES (\"" + obj.getString("name") + "\")";
                 try {
-                    PreparedStatement ps = connection.prepareStatement(query);
+                    PreparedStatement ps = connection.prepareStatement(insertTeacherQuery);
                     ps.executeUpdate();
+                    ostream.write(message.getBytes());
+                    ostream.flush();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
