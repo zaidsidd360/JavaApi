@@ -36,7 +36,7 @@ public class Main {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/api/teachers", (exchange) -> {
             if("GET".equals(exchange.getRequestMethod())) {
-                String getTeachersQuery = "SELECT * from " + databaseName + ".teachers;";
+                String getTeachersQuery = "SELECT * FROM " + databaseName + ".teachers;";
                 ResultSet rs;
                 ArrayList<HashMap<String, String>> teachersList = new ArrayList<>();
                 try {
