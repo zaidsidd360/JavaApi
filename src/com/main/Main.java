@@ -1,6 +1,7 @@
 package com.main;
 
 import com.sun.net.httpserver.HttpServer;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class Main {
@@ -36,20 +38,29 @@ public class Main {
             if("GET".equals(exchange.getRequestMethod())) {
                 String getTeachersQuery = "SELECT * from " + databaseName + ".teachers;";
                 ResultSet rs;
-                ArrayList<String> list = new ArrayList<>();
+                ArrayList<HashMap<String, String>> teachersList = new ArrayList<>();
                 try {
                     PreparedStatement ps = connection.prepareStatement(getTeachersQuery);
                     rs = ps.executeQuery();
                     while(rs.next()) {
-                        list.add(rs.getString("teacher_name"));
+                        String name = rs.getString("teacher_name");
+                        String email = rs.getString("email");
+                        int phNumber = rs.getInt("phone_number");
+                        HashMap<String, String> teacher = new HashMap<>();
+                        teacher.put("name", name);
+                        teacher.put("email", email);
+                        teacher.put("phNumber", Integer.toString(phNumber));
+                        teachersList.add(teacher);
                     }
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
-                String response = list.toString();
-                exchange.sendResponseHeaders(200, response.length());
+                JSONArray teachersArray = new JSONArray(teachersList);
+                JSONObject respObj = new JSONObject();
+                respObj.put("teachers", teachersArray);
+                exchange.sendResponseHeaders(200, respObj.toString().getBytes().length);
                 OutputStream stream = exchange.getResponseBody();
-                stream.write(response.getBytes());
+                stream.write(respObj.toString().getBytes());
                 stream.flush();
             } else if("POST".equals(exchange.getRequestMethod())) {
                 InputStream istream = exchange.getRequestBody();
@@ -61,7 +72,11 @@ public class Main {
                 String message = obj.getString("name") + " added to teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
-                String insertTeacherQuery = "INSERT INTO teachers (teacher_name) VALUES (\"" + obj.getString("name") + "\")";
+                String insertTeacherQuery =
+                        "INSERT INTO teachers (teacher_name, phone_number, email) " +
+                        "VALUES (\"" + obj.getString("name") + "\", "
+                        + obj.getInt("number") + ", \""
+                        + obj.getString("email") + "\")";
                 try {
                     PreparedStatement ps = connection.prepareStatement(insertTeacherQuery);
                     ps.executeUpdate();
