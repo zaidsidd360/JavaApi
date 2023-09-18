@@ -16,7 +16,7 @@ import java.util.Scanner;
 public class Main {
     static Connection connection;
     static String userName = "root";
-    static String password = "root";
+    static String password = "root1";
     static String databaseName = "spectrumdb";
     static String url = "jdbc:mysql://localhost:3306/" + databaseName;
 
@@ -38,7 +38,7 @@ public class Main {
             if("GET".equals(exchange.getRequestMethod())) {
                 String getTeachersQuery = "SELECT * FROM " + databaseName + ".teachers;";
                 ResultSet rs;
-                ArrayList<HashMap<String, String>> teachersList = new ArrayList<>();
+                ArrayList<HashMap<String, Object>> teachersList = new ArrayList<>();
                 try {
                     PreparedStatement ps = connection.prepareStatement(getTeachersQuery);
                     rs = ps.executeQuery();
@@ -46,18 +46,18 @@ public class Main {
                         String name = rs.getString("teacher_name");
                         String email = rs.getString("email");
                         int phNumber = rs.getInt("phone_number");
-                        HashMap<String, String> teacher = new HashMap<>();
+                        HashMap<String, Object> teacher = new HashMap<>();
                         teacher.put("name", name);
                         teacher.put("email", email);
-                        teacher.put("phNumber", Integer.toString(phNumber));
+                        teacher.put("phNumber", phNumber);
                         teachersList.add(teacher);
                     }
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
-                JSONArray teachersArray = new JSONArray(teachersList);
+                JSONArray respArr = new JSONArray(teachersList);
                 JSONObject respObj = new JSONObject();
-                respObj.put("teachers", teachersArray);
+                respObj.put("teachers", respArr);
                 exchange.sendResponseHeaders(200, respObj.toString().getBytes().length);
                 OutputStream stream = exchange.getResponseBody();
                 stream.write(respObj.toString().getBytes());
@@ -66,19 +66,39 @@ public class Main {
                 InputStream istream = exchange.getRequestBody();
                 Scanner s = new Scanner(istream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
-                System.out.println(result);
                 JSONObject obj = new JSONObject(result);
                 istream.close();
                 String message = obj.getString("name") + " added to teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
+                String name = obj.getString("name");
+                String email = obj.getString("email");
+                int phNumber = obj.getInt("number");
                 String insertTeacherQuery =
                         "INSERT INTO teachers (teacher_name, phone_number, email) " +
-                        "VALUES (\"" + obj.getString("name") + "\", "
-                        + obj.getInt("number") + ", \""
-                        + obj.getString("email") + "\")";
+                        "VALUES (\"" + name + "\", " + phNumber + ", \"" + email + "\")";
                 try {
                     PreparedStatement ps = connection.prepareStatement(insertTeacherQuery);
+                    ps.executeUpdate();
+                    ostream.write(message.getBytes());
+                    ostream.flush();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            } else if ("DELETE".equals(exchange.getRequestMethod())) {
+                InputStream istream = exchange.getRequestBody();
+                Scanner s = new Scanner(istream).useDelimiter("\\A");
+                String result = s.hasNext() ? s.next() : "";
+                System.out.println(result);
+                JSONObject obj = new JSONObject(result);
+                istream.close();
+                String message = obj.getString("name") + " removed from teachers successfully.";
+                exchange.sendResponseHeaders(200, message.length());
+                OutputStream ostream = exchange.getResponseBody();
+                String name = obj.getString("name");
+                String deleteTeacherQuery = "DELETE FROM teachers WHERE teacher_name = " + "\"" + name + "\";";
+                try {
+                    PreparedStatement ps = connection.prepareStatement(deleteTeacherQuery);
                     ps.executeUpdate();
                     ostream.write(message.getBytes());
                     ostream.flush();
@@ -90,6 +110,6 @@ public class Main {
         });
         server.setExecutor(null);
         server.start();
-        System.out.println("Service running at http://localhost:" + 8080);
+        System.out.println("Service running at http://localhost:" + 8080 + "/api/teachers");
     }
 }
