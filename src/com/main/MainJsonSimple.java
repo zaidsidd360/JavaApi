@@ -1,8 +1,9 @@
 package com.main;
 
 import com.sun.net.httpserver.HttpServer;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class Main {
+public class MainJsonSimple {
     static Connection connection;
     static String userName = "root";
     static String password = "root1";
@@ -55,7 +56,8 @@ public class Main {
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
-                JSONArray respArr = new JSONArray(teachersList);
+                JSONArray respArr = new JSONArray();
+                respArr.addAll(teachersList);
                 JSONObject respObj = new JSONObject();
                 respObj.put("teachers", respArr);
                 exchange.sendResponseHeaders(200, respObj.toString().getBytes().length);
@@ -66,14 +68,14 @@ public class Main {
                 InputStream istream = exchange.getRequestBody();
                 Scanner s = new Scanner(istream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
-                JSONObject obj = new JSONObject(result);
+                JSONObject obj = (JSONObject) JSONValue.parse(result);
                 istream.close();
-                String message = obj.getString("name") + " added to teachers successfully.";
+                String message = obj.get("name") + " added to teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
-                String name = obj.getString("name");
-                String email = obj.getString("email");
-                int phNumber = obj.getInt("number");
+                String name = (String) obj.get("name");
+                String email = (String) obj.get("email");
+                Object phNumber = obj.get("number");
                 String insertTeacherQuery =
                         "INSERT INTO " + databaseName + ".teachers (teacher_name, phone_number, email) " +
                         "VALUES (\"" + name + "\", " + phNumber + ", \"" + email + "\")";
@@ -89,13 +91,12 @@ public class Main {
                 InputStream istream = exchange.getRequestBody();
                 Scanner s = new Scanner(istream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
-                System.out.println(result);
-                JSONObject obj = new JSONObject(result);
+                JSONObject obj = (JSONObject) JSONValue.parse(result);
                 istream.close();
-                String message = obj.getString("name") + " removed from teachers successfully.";
+                String message = obj.get("name") + " removed from teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
-                String name = obj.getString("name");
+                String name = (String) obj.get("name");
                 String deleteTeacherQuery = "DELETE FROM " + databaseName + ".teachers WHERE teacher_name = " + "\"" + name + "\";";
                 try {
                     PreparedStatement ps = connection.prepareStatement(deleteTeacherQuery);
