@@ -21,6 +21,7 @@ public class MainJsonSimple {
     static String databaseName = "spectrumdb";
     static String url = "jdbc:mysql://localhost:3306/" + databaseName;
 
+//    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws
             ClassNotFoundException,
             NoSuchMethodException,
@@ -44,13 +45,15 @@ public class MainJsonSimple {
                     PreparedStatement ps = connection.prepareStatement(getTeachersQuery);
                     rs = ps.executeQuery();
                     while(rs.next()) {
+                        int id = rs.getInt("id");
                         String name = rs.getString("teacher_name");
                         String email = rs.getString("email");
-                        int phNumber = rs.getInt("phone_number");
+                        int phone = rs.getInt("phone_number");
                         HashMap<String, Object> teacher = new HashMap<>();
+                        teacher.put("id", id);
                         teacher.put("name", name);
                         teacher.put("email", email);
-                        teacher.put("phNumber", phNumber);
+                        teacher.put("phone", phone);
                         teachersList.add(teacher);
                     }
                 } catch (SQLException e) {
@@ -73,9 +76,11 @@ public class MainJsonSimple {
                 String message = obj.get("name") + " added to teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
+
                 String name = (String) obj.get("name");
                 String email = (String) obj.get("email");
                 Object phNumber = obj.get("number");
+
                 String insertTeacherQuery =
                         "INSERT INTO " + databaseName + ".teachers (teacher_name, phone_number, email) " +
                         "VALUES (\"" + name + "\", " + phNumber + ", \"" + email + "\")";
@@ -96,8 +101,8 @@ public class MainJsonSimple {
                 String message = obj.get("name") + " removed from teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
-                String name = (String) obj.get("name");
-                String deleteTeacherQuery = "DELETE FROM " + databaseName + ".teachers WHERE teacher_name = " + "\"" + name + "\";";
+                int id = (int) obj.get("id");
+                String deleteTeacherQuery = "DELETE FROM " + databaseName + ".teachers WHERE id = " + "\"" + id + "\";";
                 try {
                     PreparedStatement ps = connection.prepareStatement(deleteTeacherQuery);
                     ps.executeUpdate();
