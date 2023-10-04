@@ -1,2 +1,1 @@
-# JavaApi
-Dummy teachers api built with core java, jdbc and mysql.
+This is the server side application for [JavaApiClient](https://github.com/zaidsidd360/JavaApiClient).
