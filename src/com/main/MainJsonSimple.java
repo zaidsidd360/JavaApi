@@ -37,6 +37,14 @@ public class MainJsonSimple {
 //        SERVER CONTEXT CREATION
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/api/teachers", (exchange) -> {
+            System.out.println("In Server Context");
+            System.out.println(exchange.getRequestMethod());
+            final String origin = exchange.getRequestHeaders().getFirst("Origin");
+            if(origin != null) exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "http://localhost:5173/");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers","origin, content-type, accept, authorization");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Credentials", "true");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+            exchange.getResponseHeaders().set("contentType", "application/json; charset=UTF-8");
             if("GET".equals(exchange.getRequestMethod())) {
                 String getTeachersQuery = "SELECT * FROM " + databaseName + ".teachers;";
                 ResultSet rs;
@@ -68,22 +76,23 @@ public class MainJsonSimple {
                 stream.write(respObj.toString().getBytes());
                 stream.flush();
             } else if("POST".equals(exchange.getRequestMethod())) {
+                System.out.println("Here in POST Block");
                 InputStream istream = exchange.getRequestBody();
                 Scanner s = new Scanner(istream).useDelimiter("\\A");
                 String result = s.hasNext() ? s.next() : "";
+                System.out.println(result);
                 JSONObject obj = (JSONObject) JSONValue.parse(result);
                 istream.close();
                 String message = obj.get("name") + " added to teachers successfully.";
                 exchange.sendResponseHeaders(200, message.length());
                 OutputStream ostream = exchange.getResponseBody();
-
                 String name = (String) obj.get("name");
                 String email = (String) obj.get("email");
-                Object phNumber = obj.get("number");
+                Object phone = obj.get("phone");
 
                 String insertTeacherQuery =
                         "INSERT INTO " + databaseName + ".teachers (teacher_name, phone_number, email) " +
-                        "VALUES (\"" + name + "\", " + phNumber + ", \"" + email + "\")";
+                        "VALUES (\"" + name + "\", " + phone + ", \"" + email + "\")";
                 try {
                     PreparedStatement ps = connection.prepareStatement(insertTeacherQuery);
                     ps.executeUpdate();
@@ -111,8 +120,27 @@ public class MainJsonSimple {
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
+            } else if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                String message = "Success";
+                exchange.sendResponseHeaders(200, message.length());
+                OutputStream ostream = exchange.getResponseBody();
+                ostream.write(message.getBytes());
+                ostream.flush();
             }
             exchange.close();
+        });
+        server.createContext("/api/students", (exchange) -> {
+            if("GET".equals(exchange.getRequestMethod())) {
+                String getStudentsQuery = "SELECT * FROM spectrumdb.students;";
+                ResultSet rs;
+                try {
+                    PreparedStatement ps = connection.prepareStatement(getStudentsQuery);
+                    rs = ps.executeQuery();
+                    System.out.println(rs);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         });
         server.setExecutor(null);
         server.start();
