@@ -112,7 +112,6 @@ public class MainJsonSimple {
                 OutputStream ostream = exchange.getResponseBody();
                 String id =  obj.get("id").toString();
                 String deleteTeacherQuery = "DELETE FROM " + databaseName + ".teachers WHERE id = " + id + ";";
-                System.out.println(deleteTeacherQuery);
                 try {
                     PreparedStatement ps = connection.prepareStatement(deleteTeacherQuery);
                     ps.executeUpdate();
@@ -120,8 +119,6 @@ public class MainJsonSimple {
                     ostream.flush();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
-                } catch (Exception e) {
-                    System.out.println("HELLO");
                 }
             } else if ("OPTIONS".equals(exchange.getRequestMethod())) {
                 String message = "Success";
